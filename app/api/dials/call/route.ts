@@ -46,12 +46,13 @@ export async function POST(request: NextRequest) {
       `);
       
       for (const [questionId, answer] of Object.entries(answers)) {
+        const ans = answer as any;
         insertResponse.run(
           contactId,
           surveyId,
           questionId,
-          answer.value,
-          answer.text || null
+          ans.value,
+          ans.text || null
         );
       }
     }

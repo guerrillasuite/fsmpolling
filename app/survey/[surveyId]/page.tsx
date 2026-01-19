@@ -2,13 +2,13 @@
 import { SurveyContainer } from '@/app/components/survey/SurveyContainer';
 
 interface SurveyPageProps {
-  params: { surveyId: string };
-  searchParams: { contact_id?: string };
+  params: Promise<{ surveyId: string }>;
+  searchParams: Promise<{ contact_id?: string }>;
 }
 
-export default function SurveyPage({ params, searchParams }: SurveyPageProps) {
-  const { surveyId } = params;
-  const { contact_id } = searchParams;
+export default async function SurveyPage({ params, searchParams }: SurveyPageProps) {
+  const { surveyId } = await params;
+  const { contact_id } = await searchParams;
   
   // Require contact_id to proceed
   if (!contact_id) {
@@ -74,7 +74,8 @@ export default function SurveyPage({ params, searchParams }: SurveyPageProps) {
 }
 
 // Optional: Add metadata
-export async function generateMetadata({ params }: { params: { surveyId: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ surveyId: string }> }) {
+  await params;
   return {
     title: 'Survey | GroundGame',
     description: 'Complete your survey'

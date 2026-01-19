@@ -1,7 +1,7 @@
 // app/dials/[listId]/[index]/page.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -45,9 +45,10 @@ async function saveCallToCiviCRM(data: {
   console.log('TODO: Save to CiviCRM', data);
 }
 
-export default function CallScreen({ params }: { params: { id: string; index: string } }) {
+export default function CallScreen({ params }: { params: Promise<{ listId: string; index: string }> }) {
   const router = useRouter();
-  const idxFromUrl = Number(params.index);
+  const resolvedParams = use(params);
+  const idxFromUrl = Number(resolvedParams.index);
 
   const [idx, setIdx] = useState<number>(
     Number.isFinite(idxFromUrl) && idxFromUrl >= 0 ? idxFromUrl : 0
@@ -95,7 +96,7 @@ export default function CallScreen({ params }: { params: { id: string; index: st
         setPeople(null);
 
         // TODO: Replace with CiviCRM fetch
-        const peopleData = await fetchPeopleFromCiviCRM(params.id);
+        const peopleData = await fetchPeopleFromCiviCRM(resolvedParams.listId);
 
         if (!cancelled) {
           setPeople(peopleData);
@@ -111,7 +112,7 @@ export default function CallScreen({ params }: { params: { id: string; index: st
     })();
 
     return () => { cancelled = true; };
-  }, [params.id, idx]);
+  }, [resolvedParams.listId, idx]);
 
   const p = useMemo(() => (people && people[idx]) || null, [people, idx]);
 
@@ -124,7 +125,7 @@ export default function CallScreen({ params }: { params: { id: string; index: st
           <h4>Done with this list</h4>
           <p className="muted">You worked through all targets.</p>
         </div>
-        <Link href={`/dials/${params.id}`} className="press-card call-screen-back-link">
+        <Link href={`/dials/${resolvedParams.listId}`} className="press-card call-screen-back-link">
           ‹ Back to list
         </Link>
       </div>
@@ -135,6 +136,8 @@ export default function CallScreen({ params }: { params: { id: string; index: st
   const onStartInteraction = () => { if (!startedAt) setStartedAt(Date.now()); };
 
   async function saveAndNext() {
+    if (!p) return;
+
     try {
       const duration = startedAt ? Math.round((Date.now() - startedAt) / 1000) : null;
 
@@ -156,7 +159,7 @@ export default function CallScreen({ params }: { params: { id: string; index: st
       // TODO: Save to CiviCRM
       await saveCallToCiviCRM(callData);
 
-      router.replace(`/dials/${params.id}/${idx + 1}`);
+      router.replace(`/dials/${resolvedParams.listId}/${idx + 1}`);
       router.refresh();
     } catch (e: any) {
       alert(e?.message || 'Save failed');
@@ -166,7 +169,7 @@ export default function CallScreen({ params }: { params: { id: string; index: st
   return (
     <div className="stack">
       <div className="row">
-        <Link href={`/dials/${params.id}`} className="press-card call-screen-back-link">
+        <Link href={`/dials/${resolvedParams.listId}`} className="press-card call-screen-back-link">
           ‹ Back
         </Link>
         <div className="press-card call-screen-position">
@@ -331,7 +334,7 @@ export default function CallScreen({ params }: { params: { id: string; index: st
         <div className="row call-screen-save-row">
           <button
             className="press-card call-screen-back-link"
-            onClick={() => { router.replace(`/dials/${params.id}/${idx + 1}`); router.refresh(); }}
+            onClick={() => { router.replace(`/dials/${resolvedParams.listId}/${idx + 1}`); router.refresh(); }}
             type="button"
           >
             Skip

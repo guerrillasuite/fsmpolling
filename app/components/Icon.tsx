@@ -4,7 +4,7 @@ import React from "react";
 type Props = { name: IconName; size?: number; className?: string; "aria-hidden"?: boolean };
 type IconName = "phone" | "door" | "list" | "kanban" | "users" | "home" | "map" | "chev" | "flag";
 
-const stroke = { stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" as const };
+const stroke = { stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" as const };
 
 export function Icon({ name, size = 20, className, ...rest }: Props) {
   switch (name) {

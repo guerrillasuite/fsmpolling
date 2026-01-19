@@ -1,10 +1,11 @@
 // app/dials/[listId]/page.tsx
 import Dialer from '@/app/components/dials/Dialer';
 
-export default function DialSessionPage({
+export default async function DialSessionPage({
   params
 }: {
-  params: { listId: string }
+  params: Promise<{ listId: string }>
 }) {
-  return <Dialer listId={params.listId} />;
+  const { listId } = await params;
+  return <Dialer listId={listId} />;
 }

@@ -2,17 +2,19 @@
 import { ResultsDashboard } from '@/app/components/survey/ResultsDashboard';
 
 interface SurveyResultsPageProps {
-  params: {
+  params: Promise<{
     surveyId: string;
-  };
+  }>;
 }
 
-export default function SurveyResultsPage({
+export default async function SurveyResultsPage({
   params,
 }: SurveyResultsPageProps) {
+  const { surveyId } = await params;
+
   return (
     <section className="results-dashboard">
-      <ResultsDashboard surveyId={params.surveyId} />
+      <ResultsDashboard surveyId={surveyId} />
     </section>
   );
 }
