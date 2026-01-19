@@ -1,10 +1,19 @@
 // lib/db/init.ts
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 
 const DB_PATH = path.join(process.cwd(), 'data', 'surveys.db');
 
+function ensureDataDirectory() {
+  const dataDir = path.join(process.cwd(), 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+}
+
 export function initializeDatabase() {
+  ensureDataDirectory();
   const db = new Database(DB_PATH);
   
   // Enable foreign keys
@@ -145,6 +154,7 @@ export function initializeDatabase() {
 }
 
 export function getDatabase() {
+  ensureDataDirectory();
   const db = new Database(DB_PATH);
   // Enable WAL mode for better concurrency (better than default)
   db.pragma('journal_mode = WAL');
