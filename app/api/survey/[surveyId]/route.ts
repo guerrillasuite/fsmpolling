@@ -4,9 +4,9 @@ import { getDatabase } from '@/lib/db/init';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { surveyId: string } }
+  context: { params: Promise<{ surveyId: string }> }
 ) {
-  const { surveyId } = params;
+  const { surveyId } = await context.params;
   const db = getDatabase();
   
   try {
