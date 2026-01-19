@@ -1,10 +1,9 @@
-// app/(pwa)/dials/[id]/[index]/page.tsx
+// app/dials/[listId]/[index]/page.tsx
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from "@/lib/supabase/client";
 
 type Person = {
   person_id: string;
@@ -19,114 +18,31 @@ type Person = {
 };
 
 const RESULTS = [
-  'connected','no_answer','left_voicemail','bad_number','wrong_person',
+  'connected','no_answer','left_voicemail','bad_number','wrong_number',
   'call_back','do_not_call','not_interested','moved','other'
 ] as const;
 type ResultKey = typeof RESULTS[number];
 
-// 🔒 TEMP: hard-code tenant for all writes in test env.
-// Set NEXT_PUBLIC_TEST_TENANT_ID in your env, or replace the default literal here.
-const FORCED_TENANT_ID =
-  process.env.NEXT_PUBLIC_TEST_TENANT_ID ?? "00000000-0000-0000-0000-000000000000";
-
-/** Server-verified tenant id (for reads). */
-async function getTenantIdFromServer(): Promise<string | null> {
-  try {
-    const res = await fetch("/api/tenant-id", { cache: "no-store" });
-    const body = await res.json();
-    return (body?.tenant_id as string) ?? null;
-  } catch {
-    return null;
-  }
+// TODO: Connect to CiviCRM
+// This will eventually fetch from CiviCRM API instead of local state
+async function fetchPeopleFromCiviCRM(listId: string): Promise<Person[]> {
+  // Placeholder: Replace with CiviCRM API call
+  // Example: GET /api/civicrm/contacts?list_id={listId}
+  return [];
 }
 
-/** JWT tenant id (for writes) — kept for reference, not used while forced. */
-async function getTenantIdFromJwt(): Promise<string | null> {
-  try {
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
-    const meta =
-      (user?.app_metadata as any)?.tenant_id ??
-      (user?.user_metadata as any)?.tenant_id;
-    return meta ? String(meta) : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Resolve a reliable tenant UUID for writes (kept for reference). */
-async function resolveTenantIdForWrites(effectiveWalklistId?: string): Promise<string> {
-  try {
-    const { data } = await supabase.auth.getUser();
-    const t =
-      (data?.user?.app_metadata as any)?.tenant_id ??
-      (data?.user?.user_metadata as any)?.tenant_id ?? null;
-    if (t) return String(t);
-  } catch {}
-
-  try {
-    const res = await fetch("/api/tenant-id", { cache: "no-store" });
-    const body = await res.json();
-    if (body?.tenant_id) return String(body.tenant_id);
-  } catch {}
-
-  if (effectiveWalklistId) {
-    const wl = await supabase
-      .from("walklists")
-      .select("tenant_id")
-      .eq("id", effectiveWalklistId)
-      .maybeSingle();
-    const t = wl.data?.tenant_id;
-    if (t) return String(t);
-  }
-
-  throw new Error("Missing tenant id for writes");
-}
-
-/** Fallback client-side resolver if needed anywhere. */
-async function resolveTenantId(): Promise<string | null> {
-  const server = await getTenantIdFromServer();
-  if (server) return server;
-
-  const jwt = await getTenantIdFromJwt();
-  if (jwt) return jwt;
-
-  try {
-    if (typeof window !== "undefined") {
-      const ls = localStorage.getItem("tenantId") ?? localStorage.getItem("tenant_id");
-      if (ls) return String(ls);
-      const parts = window.location.hostname.split(".");
-      if (parts.length > 2) return parts[0];
-    }
-  } catch {}
-
-  return process.env.NEXT_PUBLIC_TEST_TENANT_ID ?? null;
-}
-
-/** Map api_call_lists.id -> underlying walklists.id if needed */
-async function resolveEffectiveWalklistId(id: string): Promise<string> {
-  // If items exist with this id, it IS the underlying id
-  const quick = await supabase
-    .from('walklist_items')
-    .select('id', { head: true, count: 'exact' })
-    .eq('walklist_id', id);
-
-  if (!quick.error && (quick.count ?? 0) > 0) return id;
-
-  // Otherwise try to map via api_call_lists
-  const probe = await supabase
-    .from('api_call_lists')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();   // safe: 0 or 1 row
-
-  if (!probe.error && probe.data) {
-    const row = probe.data as Record<string, any>;
-    for (const k of ['walklist_id', 'list_id', 'parent_walklist_id', 'source_walklist_id']) {
-      if (row[k]) return String(row[k]);
-    }
-  }
-  return id; // fallback
+// TODO: Connect to CiviCRM
+// This will eventually save call results to CiviCRM
+async function saveCallToCiviCRM(data: {
+  personId: string;
+  result: string;
+  notes: string;
+  duration: number | null;
+  opportunity?: any;
+}): Promise<void> {
+  // Placeholder: Replace with CiviCRM API call
+  // Example: POST /api/civicrm/activities
+  console.log('TODO: Save to CiviCRM', data);
 }
 
 export default function CallScreen({ params }: { params: { id: string; index: string } }) {
@@ -169,7 +85,7 @@ export default function CallScreen({ params }: { params: { id: string; index: st
     setOppNotes('');
   }, [idx]);
 
-  // Load people — RPC first, then tables. Always attach walklist_item_id.
+  // Load people from CiviCRM (placeholder)
   useEffect(() => {
     let cancelled = false;
 
@@ -178,107 +94,24 @@ export default function CallScreen({ params }: { params: { id: string; index: st
         setErr(null);
         setPeople(null);
 
-        const tenantId = await getTenantIdFromServer(); // ok if null for read-only param
-        const effectiveWalklistId = await resolveEffectiveWalklistId(params.id);
-
-        // 1) RPC
-        const rpc = await supabase.rpc("gs_get_walklist_people_v1", {
-          _tenant_id: tenantId,
-          _walklist_id: effectiveWalklistId,
-        });
-
-        if (!rpc.error) {
-          const raw = Array.isArray(rpc.data) ? rpc.data : (rpc.data as any)?.people ?? [];
-          if (raw && raw.length) {
-            // Map to Person
-            const mapped: Person[] = raw.map((r: any) => ({
-              person_id: r.person_id ?? r.id,
-              first_name: r.first_name ?? null,
-              last_name: r.last_name ?? null,
-              occupation: r.occupation ?? null,
-              employer: r.employer ?? null,
-              phone: r.phone ?? null,
-              email: r.email ?? null,
-              address: r.address ?? null,
-            }));
-
-            // Attach walklist_item_id mapping for this list
-            const joinMapRes = await supabase
-              .from('walklist_items')
-              .select('id, person_id')
-              .eq('walklist_id', effectiveWalklistId);
-            if (joinMapRes.error) throw joinMapRes.error;
-
-            const wlItemByPerson = new Map<string, string>(
-              (joinMapRes.data ?? []).map((j) => [j.person_id, j.id])
-            );
-            const mappedWithJoin: Person[] = mapped.map((r) => ({
-              ...r,
-              walklist_item_id: wlItemByPerson.get(r.person_id) ?? null,
-            }));
-
-            if (!cancelled) {
-              setPeople(mappedWithJoin);
-              const clamped = Math.max(0, Math.min(idx, Math.max(0, mappedWithJoin.length - 1)));
-              if (clamped !== idx) setIdx(clamped);
-            }
-            return; // Use RPC result
-          }
-        }
-
-        // 2) Fallback: tables (ordered by position) — already includes walklist_item_id
-        const join = await supabase
-          .from("walklist_items")
-          .select("id, person_id, position")
-          .eq("walklist_id", effectiveWalklistId)
-          .order("position", { ascending: true, nullsFirst: true });
-
-        if (join.error) throw join.error;
-
-        const ids = (join.data ?? []).map(j => j.person_id).filter(Boolean) as string[];
-        if (ids.length === 0) { if (!cancelled) setPeople([]); return; }
-
-        const ppl = await supabase
-          .from("people")
-          .select("id, first_name, last_name, occupation, phone, email, address")
-          .in("id", ids);
-
-        if (ppl.error) throw ppl.error;
-
-        const byId = new Map<string, any>((ppl.data ?? []).map(r => [r.id, r]));
-        const ordered: Person[] = (join.data ?? [])
-          .map(j => {
-            const r = byId.get(j.person_id);
-            return r ? ({
-              person_id: r.id,
-              walklist_item_id: j.id,
-              first_name: r.first_name ?? null,
-              last_name: r.last_name ?? null,
-              occupation: r.occupation ?? null,
-              employer: null,
-              phone: r.phone ?? null,
-              email: r.email ?? null,
-              address: r.address ?? null,
-            } as Person) : null;
-          })
-          .filter(Boolean) as Person[];
+        // TODO: Replace with CiviCRM fetch
+        const peopleData = await fetchPeopleFromCiviCRM(params.id);
 
         if (!cancelled) {
-          setPeople(ordered);
-          const clamped = Math.max(0, Math.min(idx, Math.max(0, ordered.length - 1)));
+          setPeople(peopleData);
+          const clamped = Math.max(0, Math.min(idx, Math.max(0, peopleData.length - 1)));
           if (clamped !== idx) setIdx(clamped);
         }
       } catch (e: any) {
         if (!cancelled) {
-          setErr(e?.message || "Failed to load");
+          setErr(e?.message || "Failed to load contacts");
           setPeople([]);
         }
       }
     })();
 
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.id]);
+  }, [params.id, idx]);
 
   const p = useMemo(() => (people && people[idx]) || null, [people, idx]);
 
@@ -303,91 +136,25 @@ export default function CallScreen({ params }: { params: { id: string; index: st
 
   async function saveAndNext() {
     try {
-      const effectiveWalklistId = await resolveEffectiveWalklistId(params.id);
-
-      // 🔒 Use ONE forced tenant value for all writes
-      const tenantId = FORCED_TENANT_ID;
-
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth?.user?.id ?? '00000000-0000-0000-0000-000000000000';
       const duration = startedAt ? Math.round((Date.now() - startedAt) / 1000) : null;
 
-      // 1) Update person (safe no-op if unchanged)
-      const { error: updErr } = await supabase.rpc('gs_update_person_v1', {
-        _tenant_id: tenantId,
-        _person: {
-          id: p.person_id,
-          first_name: p.first_name,
-          last_name: p.last_name,
-          occupation: p.occupation,
-          employer: p.employer,
-          phone: p.phone,
-          email: p.email,
-        },
-      });
-      if (updErr) throw updErr;
+      const callData = {
+        personId: p.person_id,
+        result,
+        notes,
+        duration,
+        opportunity: mkOpp ? {
+          title: oppTitle.trim() || `Follow-up: ${fullName}`,
+          stage: oppStage || null,
+          value: oppValue === '' ? null : Number(oppValue),
+          dueDate: oppDue || null,
+          priority: oppPriority || null,
+          notes: oppNotes || null,
+        } : undefined,
+      };
 
-      // 2) Create stop — include forced tenant and effective ids
-      const { data: stopData, error: stopErr } = await supabase.rpc('gs_create_stop_v1', {
-        _tenant_id: tenantId,
-        _payload: {
-          tenant_id: tenantId,
-          walklist_id: effectiveWalklistId,
-          walklist_item_id: p.walklist_item_id ?? null,
-          person_id: p.person_id,
-          user_id: userId,
-          channel: 'call',
-          result,
-          notes,
-          duration_sec: duration,
-        },
-      });
-      if (stopErr) throw stopErr;
-
-      // Normalize stopId from any return shape
-      let stopId: string | null =
-        (Array.isArray(stopData) ? stopData[0]?.stop_id ?? stopData[0]?.id : null) ||
-        (stopData && (stopData.stop_id ?? stopData.id)) ||
-        null;
-
-      // Fallback: last stop for this person/list/user (no .single/.maybeSingle)
-      if (!stopId) {
-        const recent = await supabase
-          .from('stops')
-          .select('id')
-          .eq('walklist_id', effectiveWalklistId)
-          .eq('person_id', p.person_id)
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        if (recent.error) throw recent.error;
-        stopId = recent.data?.[0]?.id ?? null;
-      }
-      if (!stopId) throw new Error('Could not resolve stop id');
-
-      // 3) Optional opportunity — use the SAME forced tenant
-      if (mkOpp && stopId) {
-        const title = oppTitle.trim() || `Follow-up: ${fullName}`;
-        const amountCents = oppValue === '' ? null : Math.round(Number(oppValue) * 100);
-        const dueAt = oppDue ? new Date(`${oppDue}T12:00:00`) : null;
-
-        const { error: oppErr } = await supabase.rpc('gs_create_opportunity_v1', {
-          _tenant_id: tenantId,
-          _payload: {
-            tenant_id: tenantId,
-            stop_id: stopId,
-            person_id: p.person_id,
-            title,
-            stage: oppStage || null,
-            amount_cents: amountCents,
-            due_at: dueAt ? dueAt.toISOString() : null,
-            priority: oppPriority || null,
-            description: oppNotes || null,
-            source: 'walklist',
-          },
-        });
-        if (oppErr) throw oppErr;
-      }
+      // TODO: Save to CiviCRM
+      await saveCallToCiviCRM(callData);
 
       router.replace(`/dials/${params.id}/${idx + 1}`);
       router.refresh();
