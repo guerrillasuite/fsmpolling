@@ -163,10 +163,10 @@ export function getDatabase() {
 
 export function seedLNCChairPoll() {
   const db = getDatabase();
-  
+
   try {
     const existing = db.prepare('SELECT id FROM surveys WHERE id = ?').get('lnc-chair-2025');
-    
+
     if (!existing) {
       db.prepare(`
         INSERT INTO surveys (id, title, description, active)
@@ -177,22 +177,91 @@ export function seedLNCChairPoll() {
         'If the National Convention was today, who would you vote for in the First Ballot of the LNC Chair Race?',
         1
       );
-      
-      const candidates = ['Evan McMahon', 'Rob Yates', 'Wes Benedict', 'Jim Ostrowski', 'Undecided'];
-      
-      db.prepare(`
+
+      const questions = [
+        {
+          id: 'lnc-chair-q1',
+          text: 'If the National Convention was today, who would you vote for in the First Ballot of the LNC Chair Race?',
+          type: 'multiple_choice_with_other',
+          options: ['Evan McMahon', 'Rob Yates', 'Wes Benedict', 'Jim Ostrowski', 'Undecided'],
+          required: 1,
+          order: 1
+        },
+        {
+          id: 'lnc-chair-q2',
+          text: 'Would you support the following Amendment to the National Bylaws?',
+          type: 'multiple_choice',
+          options: ['Yes', 'No', 'Undecided'],
+          required: 1,
+          order: 2
+        },
+        {
+          id: 'lnc-chair-q3',
+          text: 'What brought you into the Libertarian Party?',
+          type: 'multiple_choice_with_other',
+          options: ['Candidate', 'Booth', 'Friend/Family', 'Podcast', 'Single Issue Group'],
+          required: 1,
+          order: 3
+        },
+        {
+          id: 'lnc-chair-q4',
+          text: 'What are your top 3 political issues?',
+          type: 'multiple_select_with_other',
+          options: ['Gun Rights', 'Taxation', 'Immigration', 'Drug Prohibition', 'GSM Issues', 'Foreign Policy', 'Renewable Energy', 'Infrastructure', 'Healthcare', 'Following the Constitution'],
+          required: 1,
+          order: 4
+        },
+        {
+          id: 'lnc-chair-q5',
+          text: 'Who did you vote for in the 2024 General Election?',
+          type: 'multiple_choice_with_other',
+          options: ['Donald Trump', 'Kamala Harris', 'Chase Oliver', 'RFK Jr.', 'Jill Stein', 'Didn\'t Vote'],
+          required: 1,
+          order: 5
+        },
+        {
+          id: 'lnc-chair-q6',
+          text: 'How long have you been an active member of the Libertarian Party?',
+          type: 'multiple_choice',
+          options: ['<1 Year', '1-5 Years', '5-10 Years', '10-20 Years', '20+ Years'],
+          required: 1,
+          order: 6
+        },
+        {
+          id: 'lnc-chair-q7',
+          text: 'What could the National Party do to get you to be a donor or donate more?',
+          type: 'multiple_choice_with_other',
+          options: ['More/Better Outreach', 'More/Better Candidates', 'More Lobbying', 'More Infrastructure'],
+          required: 1,
+          order: 7
+        },
+        {
+          id: 'lnc-chair-q8',
+          text: 'Please verify your contact information:',
+          type: 'contact_verification',
+          options: null,
+          required: 0,
+          order: 8
+        }
+      ];
+
+      const insertQuestion = db.prepare(`
         INSERT INTO questions (id, survey_id, question_text, question_type, options, required, order_index)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        'lnc-chair-q1',
-        'lnc-chair-2025',
-        'If the National Convention was today, who would you vote for in the First Ballot of the LNC Chair Race?',
-        'multiple_choice_with_other',
-        JSON.stringify(candidates),
-        1,
-        1
-      );
-      
+      `);
+
+      for (const q of questions) {
+        insertQuestion.run(
+          q.id,
+          'lnc-chair-2025',
+          q.text,
+          q.type,
+          q.options ? JSON.stringify(q.options) : null,
+          q.required,
+          q.order
+        );
+      }
+
       console.log('LNC Chair poll seeded successfully');
     }
   } finally {
