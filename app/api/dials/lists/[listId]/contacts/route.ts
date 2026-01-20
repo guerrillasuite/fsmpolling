@@ -1,61 +1,60 @@
 // app/api/dials/list/[listId]/contacts/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/db/init';
+import { getCiviCRMClient } from '@/lib/civicrm/client';
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await context.params;
-  const db = getDatabase();
-  
+
   try {
-    // Get dial list info including survey
-    const list = db.prepare(`
-      SELECT id, name, survey_id
-      FROM dial_lists
-      WHERE id = ? AND active = 1
-    `).get(listId) as any;
-    
-    if (!list) {
+    const client = getCiviCRMClient();
+
+    // Get the group info
+    const groupResponse = await client['apiCall']('Group', 'get', {
+      id: listId,
+      sequential: 1,
+    });
+
+    if (!groupResponse.values || !Array.isArray(groupResponse.values) || groupResponse.values.length === 0) {
       return NextResponse.json(
         { error: 'Dial list not found' },
         { status: 404 }
       );
     }
-    
-    // Get contacts in this list that haven't been completed
-    const contacts = db.prepare(`
-      SELECT 
-        c.id,
-        c.first_name,
-        c.last_name,
-        c.phone,
-        c.email,
-        dlc.status,
-        dlc.call_result,
-        dlc.called_at
-      FROM contacts c
-      JOIN dial_list_contacts dlc ON c.id = dlc.contact_id
-      WHERE dlc.list_id = ?
-        AND dlc.status IN ('pending', 'no_answer')
-      ORDER BY dlc.created_at ASC
-    `).all(listId) as any[];
-    
+
+    const group = groupResponse.values[0];
+
+    // Get all contacts in this group with their details
+    const contactsResponse = await client['apiCall']('Contact', 'get', {
+      group: listId,
+      sequential: 1,
+      return: ['id', 'first_name', 'last_name', 'phone', 'email'],
+      options: { limit: 0 }
+    });
+
+    const contacts = (contactsResponse.values || []).map((contact: any) => ({
+      id: String(contact.id),
+      first_name: contact.first_name || '',
+      last_name: contact.last_name || '',
+      phone: contact.phone || '',
+      email: contact.email || '',
+      status: 'pending'
+    }));
+
     return NextResponse.json({
-      list_id: list.id,
-      list_name: list.name,
-      survey_id: list.survey_id,
+      list_id: listId,
+      list_name: group.title || group.name,
+      survey_id: null, // Can be linked later if needed
       contacts
     });
-    
+
   } catch (error) {
-    console.error('Error fetching contacts:', error);
+    console.error('Error fetching contacts from CiviCRM:', error);
     return NextResponse.json(
       { error: 'Failed to fetch contacts' },
       { status: 500 }
     );
-  } finally {
-    db.close();
   }
 }
