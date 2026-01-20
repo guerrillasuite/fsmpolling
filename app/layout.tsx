@@ -10,8 +10,8 @@ import "./styles/globals.css";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
   
-  // Check if we're on a survey page (hide nav)
-  const isSurveyPage = pathname.startsWith('/survey');
+  // Check if we're on a survey or consent page (hide nav)
+  const isFullscreenPage = pathname.startsWith('/survey') || pathname.startsWith('/consent');
 
   const isActive = React.useCallback(
     (href: string) => pathname.startsWith(href),
@@ -28,8 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener("resize", setVh);
   }, []);
 
-  // If it's a survey page, render without navigation
-  if (isSurveyPage) {
+  // If it's a fullscreen page (survey/consent), render without navigation
+  if (isFullscreenPage) {
     return (
       <html lang="en">
         <body>

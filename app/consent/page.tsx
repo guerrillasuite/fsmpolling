@@ -92,6 +92,24 @@ export default function ConsentPage() {
   return (
     <div className="survey-main-container">
       <div className="survey-main-inner">
+
+        {/* FSM Logo - Top Left */}
+        <div style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          zIndex: 10
+        }}>
+          <img
+            src="/fsm-logo.png"
+            alt="Free Speech Media Network"
+            style={{
+              height: '48px',
+              width: 'auto'
+            }}
+          />
+        </div>
+
         {/* Header Card */}
         <div className="survey-header-card" style={{ textAlign: 'center' }}>
           <h1 className="survey-title" style={{ fontSize: '28px', marginBottom: '12px' }}>
