@@ -8,11 +8,13 @@
     "start": "next start",
     "lint": "next lint",
     "db:init": "tsx lib/db/init.ts",
-    "db:seed": "tsx lib/db/init.ts"
+    "db:seed": "tsx lib/db/init.ts",
+    "test:civicrm": "tsx scripts/test-civicrm.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.6.0",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
     "lucide-react": "^0.542.0",
     "next": "^15.5.9",
     "react": "19.1.0",

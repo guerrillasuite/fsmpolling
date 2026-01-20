@@ -220,6 +220,42 @@ export function SurveyContainer({
           <p className="survey-success-message">
             Your response has been recorded successfully.
           </p>
+
+          {/* FSM Promotional Section */}
+          <div style={{
+            marginTop: '32px',
+            paddingTop: '24px',
+            borderTop: '1px solid rgb(var(--border-600))',
+            textAlign: 'center'
+          }}>
+            <p style={{
+              marginBottom: '16px',
+              fontSize: '16px',
+              color: 'rgb(var(--text-200))'
+            }}>
+              Check out the recent shows from Free Speech Media Network!
+            </p>
+            <a
+              href="https://freespeechmedia.live"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-block',
+                transition: 'opacity 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.opacity = '0.7'}
+              onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              <img
+                src="/fsm-logo.png"
+                alt="Free Speech Media Network"
+                style={{
+                  height: '64px',
+                  width: 'auto'
+                }}
+              />
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -257,6 +293,23 @@ export function SurveyContainer({
   return (
     <div className="survey-main-container">
       <div className="survey-main-inner">
+
+        {/* FSM Logo - Top Left */}
+        <div style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          zIndex: 10
+        }}>
+          <img
+            src="/fsm-logo.png"
+            alt="Free Speech Media Network"
+            style={{
+              height: '48px',
+              width: 'auto'
+            }}
+          />
+        </div>
 
         {/* Header Card */}
         <div className="survey-header-card">

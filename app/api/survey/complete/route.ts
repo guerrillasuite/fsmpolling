@@ -1,21 +1,22 @@
-// app/api/survey/complete/route.ts - UPDATE
+// app/api/survey/complete/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db/init';
+import { pushPollToCiviCRM, getContactInfoFromResponses } from '@/lib/civicrm/poll-sync';
 
 export async function POST(request: NextRequest) {
   const db = getDatabase();
-  
+
   try {
     const body = await request.json();
     const { crm_contact_id, survey_id } = body;
-    
+
     if (!crm_contact_id || !survey_id) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
-    
+
     // Check if session exists
     const existing = db.prepare(`
       SELECT id, completed_at
@@ -43,7 +44,30 @@ export async function POST(request: NextRequest) {
         WHERE crm_contact_id = ? AND survey_id = ?
       `).run(crm_contact_id, survey_id);
     }
-    
+
+    // ===== CIVICRM INTEGRATION =====
+    // Push responses to CiviCRM after marking as complete
+    try {
+      // Get contact info from the contact verification question
+      const contactInfo = getContactInfoFromResponses(crm_contact_id, survey_id);
+
+      // Push to CiviCRM
+      await pushPollToCiviCRM(crm_contact_id, survey_id, contactInfo || undefined);
+
+      console.log(`✓ Successfully synced poll to CiviCRM for contact ${crm_contact_id}`);
+    } catch (civiError) {
+      // Log the error but don't fail the request
+      // The poll is still marked complete in local DB
+      console.error('Failed to sync to CiviCRM (poll still saved locally):', civiError);
+
+      // Optionally, you could return a warning to the frontend
+      return NextResponse.json({
+        success: true,
+        message: 'Survey completed successfully',
+        warning: 'Survey saved locally but CiviCRM sync failed. Contact administrator.'
+      });
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Survey completed successfully'
