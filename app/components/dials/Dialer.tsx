@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Phone, SkipForward, CheckCircle2 } from 'lucide-react';
+import { Phone, SkipForward, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 interface Contact {
   id: string;
@@ -181,6 +181,35 @@ export default function Dialer({ listId, surveyId }: DialerProps) {
     }
   };
 
+  const goBackFromCallResult = () => {
+    setCallStatus('idle');
+    setCallResult('');
+  };
+
+  const goBackInSurvey = () => {
+    if (currentQuestionIndex > 0) {
+      // Go to previous question
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      setOtherText('');
+      setMultiSelectValues([]);
+    } else {
+      // Go back to call result selection
+      setCallStatus('selecting_result');
+      setAnswers({});
+    }
+  };
+
+  const goBackFromCompleted = () => {
+    if (callResult === 'Connected' && survey && questions.length > 0) {
+      // Go back to last survey question
+      setCallStatus('in_survey');
+      setCurrentQuestionIndex(questions.length - 1);
+    } else {
+      // Go back to call result selection
+      setCallStatus('selecting_result');
+    }
+  };
+
   const saveCall = async () => {
     if (!currentContact) return;
 
@@ -250,19 +279,39 @@ export default function Dialer({ listId, surveyId }: DialerProps) {
         <a href={`tel:${currentContact.phone}`} className="dialer-contact-phone">
           {currentContact.phone}
         </a>
+        {currentContact.email && (
+          <a href={`mailto:${currentContact.email}`} className="dialer-contact-email">
+            {currentContact.email}
+          </a>
+        )}
       </div>
 
       {/* Start Call Button */}
       {callStatus === 'idle' && (
-        <button onClick={startCall} className="dialer-start-btn">
-          <Phone size={20} />
-          Start Call
-        </button>
+        <>
+          <a
+            href={`tel:${currentContact.phone}`}
+            onClick={startCall}
+            className="dialer-start-btn"
+            style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          >
+            <Phone size={20} />
+            Start Call
+          </a>
+          <button onClick={nextContact} className="dialer-skip-btn">
+            <SkipForward size={16} />
+            Skip Contact
+          </button>
+        </>
       )}
 
       {/* Call Result Selection - FIRST */}
       {callStatus === 'selecting_result' && (
         <div className="dialer-result-container">
+          <button onClick={goBackFromCallResult} className="dialer-back-btn">
+            <ArrowLeft size={16} />
+            Back
+          </button>
           <h3 className="dialer-result-title">Call Result</h3>
           <div className="dialer-result-grid">
             {['Connected', 'No Answer', 'Left Message', 'Busy', 'Wrong Number', 'Do Not Call'].map((result) => (
@@ -281,6 +330,10 @@ export default function Dialer({ listId, surveyId }: DialerProps) {
       {/* Survey Questions - ONLY if Connected */}
       {callStatus === 'in_survey' && currentQuestion && (
         <div className="dialer-question-card">
+          <button onClick={goBackInSurvey} className="dialer-back-btn">
+            <ArrowLeft size={16} />
+            Back
+          </button>
           <div className="dialer-question-progress">
             Question {currentQuestionIndex + 1} of {questions.length}
           </div>
@@ -425,6 +478,10 @@ export default function Dialer({ listId, surveyId }: DialerProps) {
       {/* Final Notes - After survey or if not connected */}
       {callStatus === 'completed' && (
         <div className="dialer-result-container">
+          <button onClick={goBackFromCompleted} className="dialer-back-btn">
+            <ArrowLeft size={16} />
+            Back
+          </button>
           <h3 className="dialer-result-title">Call Notes</h3>
           <p style={{ color: 'rgb(var(--text-muted))', marginBottom: '16px' }}>
             Result: <strong style={{ color: 'rgb(var(--text-bright))' }}>{callResult}</strong>

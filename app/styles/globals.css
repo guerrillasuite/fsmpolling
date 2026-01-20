@@ -860,6 +860,18 @@ hr, .divider, .list-row { border-color: rgb(var(--border-light)); }
   text-decoration: none;
 }
 
+.dialer-contact-email {
+  font-size: 14px;
+  color: rgb(var(--text-muted));
+  text-decoration: none;
+  margin-top: 4px;
+  display: block;
+}
+
+.dialer-contact-email:hover {
+  color: rgb(var(--gold-primary));
+}
+
 .dialer-start-btn {
   width: 100%;
   padding: 16px;
@@ -1017,6 +1029,26 @@ hr, .divider, .list-row { border-color: rgb(var(--border-light)); }
   background: rgba(var(--bg-darkest), 0.8);
   color: white;
   cursor: not-allowed;
+}
+
+.dialer-back-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid rgb(var(--border-light));
+  border-radius: 8px;
+  color: rgb(var(--text-muted));
+  cursor: pointer;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.dialer-back-btn:hover {
+  border-color: rgb(var(--gold-primary));
+  color: rgb(var(--gold-primary));
 }
 
 .dialer-skip-btn {
