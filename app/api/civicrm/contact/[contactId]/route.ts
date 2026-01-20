@@ -8,9 +8,9 @@ import { getCiviCRMClient } from '@/lib/civicrm/client';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { contactId: string } }
+  context: { params: Promise<{ contactId: string }> }
 ) {
-  const { contactId } = params;
+  const { contactId } = await context.params;
 
   if (!contactId) {
     return NextResponse.json(
