@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Contact Fetch</title>
+</head>
+<body>
+    <h1>Testing Contact Fetch</h1>
+    <div id="output"></div>
+
+    <script>
+        async function testContactFetch() {
+            const contactId = '3';
+            const output = document.getElementById('output');
+
+            output.innerHTML = `<p>Fetching contact ${contactId}...</p>`;
+
+            try {
+                const response = await fetch(`http://localhost:3001/api/civicrm/contact/${contactId}`);
+                const data = await response.json();
+
+                output.innerHTML = `
+                    <h2>Success!</h2>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <hr>
+                    <h3>Contact Data:</h3>
+                    <p>Name: ${data.data?.name || 'Not set'}</p>
+                    <p>Email: ${data.data?.email || 'Not set'}</p>
+                    <p>Phone: ${data.data?.phone || 'Not set'}</p>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        testContactFetch();
+    </script>
+</body>
+</html>

@@ -27,10 +27,10 @@ interface SurveyContainerProps {
   randomizeOptions?: boolean;
 }
 
-export function SurveyContainer({ 
-  surveyId, 
+export function SurveyContainer({
+  surveyId,
   contactId,
-  randomizeOptions = false 
+  randomizeOptions = false
 }: SurveyContainerProps) {
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -40,6 +40,7 @@ export function SurveyContainer({
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [existingContact, setExistingContact] = useState<{ name?: string; email?: string; phone?: string }>({});
   
   useEffect(() => {
     fetchSurvey();
@@ -73,6 +74,35 @@ export function SurveyContainer({
       const data = await response.json();
       setSurvey(data.survey);
       setQuestions(data.questions);
+
+      // Fetch existing contact data from CiviCRM
+      try {
+        console.log('[Survey] Fetching contact data for:', contactId);
+        const contactResponse = await fetch(`/api/civicrm/contact/${contactId}`);
+        console.log('[Survey] Contact response status:', contactResponse.status);
+
+        if (contactResponse.ok) {
+          const contactData = await contactResponse.json();
+          console.log('[Survey] Contact data received:', contactData);
+
+          if (contactData.success && contactData.data) {
+            const contactInfo = {
+              name: contactData.data.name,
+              email: contactData.data.email,
+              phone: contactData.data.phone,
+            };
+            console.log('[Survey] Setting existing contact:', contactInfo);
+            setExistingContact(contactInfo);
+          } else {
+            console.log('[Survey] Contact data not successful or empty');
+          }
+        } else {
+          console.warn('[Survey] Contact fetch failed with status:', contactResponse.status);
+        }
+      } catch (contactErr) {
+        console.warn('[Survey] Failed to fetch contact data from CiviCRM:', contactErr);
+        // Don't fail the whole survey if contact fetch fails
+      }
     } catch (err) {
       setError('Failed to load survey. Please try again.');
       console.error(err);
@@ -383,11 +413,7 @@ export function SurveyContainer({
               contactId={contactId}
               onAnswer={handleContactVerification}
               initialData={currentAnswer?.value ? JSON.parse(currentAnswer.value) : {}}
-              existingContact={{
-                name: 'John Smith',  // TODO: Fetch from CRM
-                email: 'john.smith@example.com',  // TODO: Fetch from CRM
-                phone: '(555) 123-4567'  // TODO: Fetch from CRM
-              }}
+              existingContact={existingContact}
             />
           )}
         </div>
