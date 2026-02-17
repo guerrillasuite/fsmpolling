@@ -84,6 +84,42 @@ export default function ConsentPage() {
           <p className="survey-success-message">
             Your consent has been recorded. You'll receive SMS messages about the LNC Chair poll when it launches.
           </p>
+
+          {/* FSM Promotional Section */}
+          <div style={{
+            marginTop: '32px',
+            paddingTop: '24px',
+            borderTop: '1px solid rgb(var(--border-600))',
+            textAlign: 'center'
+          }}>
+            <p style={{
+              marginBottom: '16px',
+              fontSize: '16px',
+              color: 'rgb(var(--text-200))'
+            }}>
+              Check out the recent shows from Free Speech Media Network!
+            </p>
+            <a
+              href="https://freespeechmedia.live"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-block',
+                transition: 'opacity 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.opacity = '0.7'}
+              onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              <img
+                src="/fsm-logo.png"
+                alt="Free Speech Media Network"
+                style={{
+                  height: '64px',
+                  width: 'auto'
+                }}
+              />
+            </a>
+          </div>
         </div>
       </div>
     );
