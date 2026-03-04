@@ -65,21 +65,13 @@ export async function POST(request: NextRequest) {
 
     // Step 3: If contact found, update it. Otherwise, create new contact.
     if (contactId) {
-      // Update existing contact
-      await client['apiCall']('Contact', 'create', {
-        id: contactId,
-        phone: cellNumber,
-        ...(email && { email }),
-      });
-      console.log(`Updated contact ${contactId} with phone and email`);
+      console.log(`Found existing contact: ${contactId}`);
     } else {
       // Create new contact
       const createResponse = await client['apiCall']('Contact', 'create', {
         contact_type: 'Individual',
         first_name: firstName,
         last_name: lastName,
-        phone: cellNumber,
-        ...(email && { email }),
       });
 
       if (!createResponse.id) {
@@ -100,6 +92,33 @@ export async function POST(request: NextRequest) {
         } catch (groupAddErr) {
           console.warn('Failed to add contact to Delegates group:', groupAddErr);
         }
+      }
+    }
+
+    // Step 3b: Save phone number as a separate Phone record
+    try {
+      await client['apiCall']('Phone', 'create', {
+        contact_id: contactId,
+        phone: cellNumber,
+        phone_type_id: 'Mobile',
+        is_primary: 1,
+      });
+      console.log(`Saved phone number for contact ${contactId}`);
+    } catch (phoneErr) {
+      console.error('Failed to save phone number:', phoneErr);
+    }
+
+    // Step 3c: Save email as a separate Email record (if provided)
+    if (email) {
+      try {
+        await client['apiCall']('Email', 'create', {
+          contact_id: contactId,
+          email,
+          is_primary: 1,
+        });
+        console.log(`Saved email for contact ${contactId}`);
+      } catch (emailErr) {
+        console.error('Failed to save email:', emailErr);
       }
     }
 
